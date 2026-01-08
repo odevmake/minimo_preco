@@ -106,7 +106,8 @@ def main(page: ft.Page):
 # 🔴 ISSO É O QUE FAZ FUNCIONAR NO RENDER
 ft.app(
     target=main,
-    view=ft.WEB_BROWSER,
+    #view=ft.WEB_BROWSER,
     host="0.0.0.0",
     port=10000
 )
+
