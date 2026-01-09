@@ -2,6 +2,7 @@ import flet as ft
 import csv
 import os
 
+
 ARQUIVO = "precos.csv"
 
 
@@ -110,13 +111,34 @@ def main(page: ft.Page):
 
     ])
 
-    regiao = ft.Container(
+    logo = ft.Image(
 
-        bgcolor=ft.Colors.BLACK,
-        padding=15,
-        content=tabela
+            src="assets/img.png",
+            width=600,
+            height=950,
+            fit="contain",
 
-    )
+        )
+
+    regiao = ft.Row([
+
+        ft.Container(
+
+            bgcolor=ft.Colors.BLACK,
+            padding=15,
+            content=tabela
+        ),
+
+        ft.Container(
+
+            bgcolor=ft.Colors.BLACK,
+            padding=15,
+            alignment=ft.Alignment.TOP_LEFT,
+            content=logo
+
+        )
+
+    ])
 
     page.add(
         texto_inicial,
@@ -129,7 +151,7 @@ def main(page: ft.Page):
 # 🔴 ISSO É O QUE FAZ FUNCIONAR NO RENDER
 ft.app(
     target=main,
-    #view=ft.WEB_BROWSER,
+    assets_dir="assets",
     host="0.0.0.0",
     port=10000
 )
