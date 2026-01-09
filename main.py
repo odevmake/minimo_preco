@@ -113,7 +113,7 @@ def main(page: ft.Page):
 
     logo = ft.Image(
 
-            src="assets/img.png",
+            src="img.png",
             width=600,
             height=950,
             fit="contain",
@@ -151,7 +151,8 @@ def main(page: ft.Page):
 # 🔴 ISSO É O QUE FAZ FUNCIONAR NO RENDER
 ft.app(
     target=main,
-    assets_dir="assets",
+    assets_dir=" ",
     host="0.0.0.0",
     port=10000
 )
+
