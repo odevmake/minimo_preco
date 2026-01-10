@@ -2,7 +2,6 @@ import flet as ft
 import csv
 import os
 
-
 ARQUIVO = "precos.csv"
 
 
@@ -12,11 +11,24 @@ def carregar_dados():
     if not os.path.exists(ARQUIVO):
         return dados
 
-    with open(ARQUIVO, encoding="utf-8") as f:
+    with open(ARQUIVO, encoding="utf-8", newline="") as f:
         leitor = csv.DictReader(f)
+
         for linha in leitor:
-            linha["Preco"] = float(linha["Preco"])
-            dados.append(linha)
+            try:
+                # proteção contra CSV quebrado
+                preco = linha.get("Preco", "").replace(",", ".").strip()
+
+                # se não for número, ignora a linha
+                preco = float(preco)
+
+                linha["Preco"] = preco
+                dados.append(linha)
+
+            except (ValueError, AttributeError):
+                # ignora linha inválida
+                continue
+
     return dados
 
 
@@ -41,20 +53,22 @@ def main(page: ft.Page):
 
     def atualizar_tabela(lista):
         tabela.rows.clear()
+
         for item in lista:
             tabela.rows.append(
                 ft.DataRow(
                     cells=[
-                        ft.DataCell(ft.Text(item["Produto"])),
-                        ft.DataCell(ft.Text(item["Marca"])),
-                        ft.DataCell(ft.Text(item["Unidade"])),
+                        ft.DataCell(ft.Text(item.get("Produto", ""))),
+                        ft.DataCell(ft.Text(item.get("Marca", ""))),
+                        ft.DataCell(ft.Text(item.get("Unidade", ""))),
                         ft.DataCell(ft.Text(f"R$ {item['Preco']:.2f}")),
-                        ft.DataCell(ft.Text(item["Local"])),
-                        ft.DataCell(ft.Text(item["Cidade"])),
-                        ft.DataCell(ft.Text(item["Estado"])),
+                        ft.DataCell(ft.Text(item.get("Local", ""))),
+                        ft.DataCell(ft.Text(item.get("Cidade", ""))),
+                        ft.DataCell(ft.Text(item.get("Estado", ""))),
                     ]
                 )
             )
+
         page.update()
 
     def buscar(e):
@@ -108,7 +122,7 @@ def main(page: ft.Page):
     ])
 
     logo = ft.Image(
-        src="img.png",
+        src="assets/img.png",
         width=600,
         height=950,
         fit="contain",
@@ -126,7 +140,9 @@ def main(page: ft.Page):
             alignment=ft.Alignment.TOP_LEFT,
             content=logo
         )
-    ])
+
+    ],
+    vertical_alignment=ft.CrossAxisAlignment.START)
 
     page.add(
         texto_inicial,
@@ -136,10 +152,10 @@ def main(page: ft.Page):
     )
 
 
+# ✅ forma correta atual (substitui app no futuro)
 ft.app(
     target=main,
     assets_dir="assets",
     host="0.0.0.0",
     port=10000
 )
-
