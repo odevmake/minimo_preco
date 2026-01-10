@@ -5,6 +5,9 @@ import os
 ARQUIVO = "precos.csv"
 
 
+# =========================
+# CARREGAR DADOS COM SEGURANÇA
+# =========================
 def carregar_dados():
     dados = []
 
@@ -16,28 +19,38 @@ def carregar_dados():
 
         for linha in leitor:
             try:
-                # proteção contra CSV quebrado
-                preco = linha.get("Preco", "").replace(",", ".").strip()
+                preco_raw = linha.get("Preco", "").strip().replace(",", ".")
+                preco = float(preco_raw)
 
-                # se não for número, ignora a linha
-                preco = float(preco)
+                dados.append({
+                    "Produto": linha.get("Produto", ""),
+                    "Marca": linha.get("Marca", ""),
+                    "Unidade": linha.get("Unidade", ""),
+                    "Preco": preco,
+                    "Local": linha.get("Local", ""),
+                    "Cidade": linha.get("Cidade", ""),
+                    "Estado": linha.get("Estado", ""),
+                })
 
-                linha["Preco"] = preco
-                dados.append(linha)
-
-            except (ValueError, AttributeError):
-                # ignora linha inválida
-                continue
+            except ValueError:
+                continue  # ignora linha quebrada
 
     return dados
 
 
+# =========================
+# APP
+# =========================
 def main(page: ft.Page):
     page.title = "🛒 Melhores Preços - Sergipe"
     page.padding = 20
+    page.scroll = ft.ScrollMode.AUTO
 
     dados = carregar_dados()
 
+    # =========================
+    # TABELA
+    # =========================
     tabela = ft.DataTable(
         columns=[
             ft.DataColumn(ft.Text("Produto")),
@@ -58,19 +71,22 @@ def main(page: ft.Page):
             tabela.rows.append(
                 ft.DataRow(
                     cells=[
-                        ft.DataCell(ft.Text(item.get("Produto", ""))),
-                        ft.DataCell(ft.Text(item.get("Marca", ""))),
-                        ft.DataCell(ft.Text(item.get("Unidade", ""))),
+                        ft.DataCell(ft.Text(item["Produto"])),
+                        ft.DataCell(ft.Text(item["Marca"])),
+                        ft.DataCell(ft.Text(item["Unidade"])),
                         ft.DataCell(ft.Text(f"R$ {item['Preco']:.2f}")),
-                        ft.DataCell(ft.Text(item.get("Local", ""))),
-                        ft.DataCell(ft.Text(item.get("Cidade", ""))),
-                        ft.DataCell(ft.Text(item.get("Estado", ""))),
+                        ft.DataCell(ft.Text(item["Local"])),
+                        ft.DataCell(ft.Text(item["Cidade"])),
+                        ft.DataCell(ft.Text(item["Estado"])),
                     ]
                 )
             )
 
         page.update()
 
+    # =========================
+    # BUSCA
+    # =========================
     def buscar(e):
         termo = busca.value.lower()
         cidade = cidade_input.value.lower()
@@ -109,50 +125,64 @@ def main(page: ft.Page):
 
     atualizar_tabela(dados)
 
-    texto_inicial = ft.Text(
+    # =========================
+    # TOPO
+    # =========================
+    titulo = ft.Text(
         "📊 Comparador de Preços",
         size=22,
         weight=ft.FontWeight.BOLD
     )
 
-    linha = ft.Row([
+    filtros = ft.Row([
         busca,
         cidade_input,
         estado_input
     ])
 
+    # =========================
+    # IMAGEM (RENDER OK)
+    # =========================
     logo = ft.Image(
-        src="assets/img.png",
-        width=600,
-        height=950,
-        fit="contain",
+        src="img.png",  # ⚠️ SEM assets/
+        width=380,
+        fit=ft.ImageFit.CONTAIN
     )
 
-    regiao = ft.Row([
-        ft.Container(
-            bgcolor=ft.Colors.BLACK,
-            padding=15,
-            content=tabela
-        ),
-        ft.Container(
-            bgcolor=ft.Colors.BLACK,
-            padding=15,
-            alignment=ft.Alignment.TOP_LEFT,
-            content=logo
-        )
+    # =========================
+    # LAYOUT PRINCIPAL
+    # =========================
+    conteudo = ft.Row(
+        [
+            ft.Container(
+                content=tabela,
+                expand=True,
+                padding=15
+            ),
 
-    ],
-    vertical_alignment=ft.CrossAxisAlignment.START)
+            ft.Container(
+                content=ft.Column(
+                    [logo],
+                    alignment=ft.MainAxisAlignment.START
+                ),
+                width=420,
+                padding=15
+            )
+        ],
+        vertical_alignment=ft.CrossAxisAlignment.START
+    )
 
     page.add(
-        texto_inicial,
-        linha,
+        titulo,
+        filtros,
         ft.Divider(),
-        regiao
+        conteudo
     )
 
 
-# ✅ forma correta atual (substitui app no futuro)
+# =========================
+# EXECUÇÃO (RENDER)
+# =========================
 ft.app(
     target=main,
     assets_dir="assets",
