@@ -100,6 +100,7 @@ def main(page: ft.Page):
         ]
 
         filtrado.sort(key=lambda x: x["Preco"])
+        contador.value = f"{len(filtrado)} resultados encontrados" if filtrado else "Nenhum produto encontrado"
         atualizar_tabela(filtrado)
 
     busca = ft.TextField(
@@ -132,6 +133,14 @@ def main(page: ft.Page):
         "📊 Comparador de Preços",
         size=22,
         weight=ft.FontWeight.BOLD
+    )
+
+    contador = ft.Text(
+
+        "",
+        italic=True,
+        color=ft.Colors.GREY
+
     )
 
     filtros = ft.Row([
@@ -175,6 +184,7 @@ def main(page: ft.Page):
     page.add(
         titulo,
         filtros,
+        contador,
         ft.Divider(),
         conteudo
     )
@@ -189,4 +199,3 @@ ft.app(
     host="0.0.0.0",
     port=10000
 )
-
