@@ -51,6 +51,7 @@ def main(page: ft.Page):
     # =========================
     # TABELA
     # =========================
+
     tabela = ft.DataTable(
         columns=[
             ft.DataColumn(ft.Text("Produto")),
@@ -158,29 +159,47 @@ def main(page: ft.Page):
         fit="contain"
     )
 
+    def montar_layout():
+        # layout para celular
+        if page.width < 800:
+            return ft.Column(
+                [
+                    ft.Container(
+                        content=logo,
+                        padding=10,
+                        alignment=ft.Alignment.CENTER
+                    ),
+                    ft.Container(
+                        content=tabela,
+                        padding=10
+                    )
+                ]
+            )
+
+        # layout para PC
+        return ft.Row(
+            [
+                ft.Container(
+                    content=tabela,
+                    expand=True,
+                    padding=15
+                ),
+                ft.Container(
+                    content=ft.Column(
+                        [logo],
+                        alignment=ft.MainAxisAlignment.START
+                    ),
+                    width=420,
+                    padding=15
+                )
+            ],
+            vertical_alignment=ft.CrossAxisAlignment.START
+        )
+
     # =========================
     # LAYOUT PRINCIPAL
     # =========================
-    conteudo = ft.Row(
-        [
-            ft.Container(
-                content=tabela,
-                expand=True,
-                padding=15
-            ),
-
-            ft.Container(
-                content=ft.Column(
-                    [logo],
-                    alignment=ft.MainAxisAlignment.START
-                ),
-                width=420,
-                padding=15
-            )
-        ],
-        vertical_alignment=ft.CrossAxisAlignment.START
-    )
-
+    conteudo = montar_layout()
     page.add(
         titulo,
         filtros,
