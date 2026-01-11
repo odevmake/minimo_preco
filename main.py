@@ -6,22 +6,19 @@ import asyncio
 ARQUIVO = "precos.csv"
 
 # =========================
-# CARREGAR DADOS COM SEGURANÇA
+# CARREGAR DADOS
 # =========================
 def carregar_dados():
     dados = []
-
     if not os.path.exists(ARQUIVO):
         return dados
 
     with open(ARQUIVO, encoding="utf-8", newline="") as f:
         leitor = csv.DictReader(f)
-
         for linha in leitor:
             try:
                 preco_raw = linha.get("Preco", "").strip().replace(",", ".")
                 preco = float(preco_raw)
-
                 dados.append({
                     "Produto": linha.get("Produto", ""),
                     "Marca": linha.get("Marca", ""),
@@ -31,10 +28,8 @@ def carregar_dados():
                     "Cidade": linha.get("Cidade", ""),
                     "Estado": linha.get("Estado", ""),
                 })
-
             except ValueError:
-                continue  # ignora linha quebrada
-
+                continue
     return dados
 
 # =========================
@@ -44,7 +39,7 @@ async def main(page: ft.Page):
     page.title = "🛒 Mínimos Preços - Sergipe"
     page.padding = 20
     page.scroll = ft.ScrollMode.AUTO
-    page.bgcolor = ft.Colors.BLACK
+    page.bgcolor = ft.Colors.WHITE
 
     dados = carregar_dados()
 
@@ -101,85 +96,45 @@ async def main(page: ft.Page):
         contador.value = f"{len(filtrado)} resultados encontrados" if filtrado else "Nenhum produto encontrado"
         atualizar_tabela(filtrado)
 
-    busca = ft.TextField(
-        label="Buscar produto",
-        prefix_icon=ft.Icons.SEARCH,
-        expand=True,
-        on_change=buscar
-    )
-
-    cidade_input = ft.TextField(
-        label="Cidade",
-        value="Aracaju",
-        width=200,
-        on_change=buscar
-    )
-
-    estado_input = ft.TextField(
-        label="Estado",
-        value="SE",
-        width=120,
-        on_change=buscar
-    )
+    busca = ft.TextField(label="Buscar produto", prefix_icon=ft.Icons.SEARCH, expand=True, on_change=buscar)
+    cidade_input = ft.TextField(label="Cidade", value="Aracaju", width=200, on_change=buscar)
+    estado_input = ft.TextField(label="Estado", value="SE", width=120, on_change=buscar)
 
     atualizar_tabela(dados)
 
     # =========================
     # TOPO
     # =========================
-    titulo = ft.Text(
-        "📊 Comparador de Preços",
-        size=22,
-        weight=ft.FontWeight.BOLD
-    )
-
-    contador = ft.Text(
-        "",
-        italic=True,
-        color=ft.Colors.GREY
-    )
-
-    filtros = ft.Row([
-        busca,
-        cidade_input,
-        estado_input
-    ])
+    titulo = ft.Text("📊 Comparador de Preços", size=22, weight=ft.FontWeight.BOLD)
+    contador = ft.Text("", italic=True, color=ft.Colors.GREY)
+    filtros = ft.Row([busca, cidade_input, estado_input])
 
     # =========================
     # LOGO PRINCIPAL
     # =========================
-    logo = ft.Image(
-        src="img.png",
-        width=380,
-        fit="contain"
-    )
+    logo = ft.Image(src="logo.png", width=380, fit="contain")  # coloque a logo em assets/
 
     # =========================
-    # CARROSSEL
+    # CARROSSEL (via assets/)
     # =========================
     carousel_imgs = [
         "carousel/img.png",
         "carousel/img_1.png",
         "carousel/img_2.png",
-    ]
+    ]  # todas dentro da pasta assets/
     carousel_index = 0
-    carousel_image = ft.Image(
-        src=carousel_imgs[carousel_index],
-        width=380,
-        height=250,
-        fit="contain"
-    )
+    carousel_image = ft.Image(src=carousel_imgs[carousel_index], width=380, height=250, fit="contain")
 
     async def loop_carrossel():
         nonlocal carousel_index
         while True:
-            await asyncio.sleep(10)  # 10 segundos
+            await asyncio.sleep(10)
             carousel_index = (carousel_index + 1) % len(carousel_imgs)
             carousel_image.src = carousel_imgs[carousel_index]
             page.update()
 
     # =========================
-    # FUNÇÃO PARA MONTAR LAYOUT RESPONSIVO
+    # LAYOUT RESPONSIVO
     # =========================
     def montar_layout():
         if page.width < 800:
@@ -198,22 +153,15 @@ async def main(page: ft.Page):
                 )
             ], vertical_alignment=ft.CrossAxisAlignment.START)
 
-    # =========================
-    # LAYOUT PRINCIPAL
-    # =========================
     conteudo = montar_layout()
-    page.add(
-        titulo,
-        filtros,
-        contador,
-        ft.Divider(),
-        conteudo
-    )
+    page.add(titulo, filtros, contador, ft.Divider(), conteudo)
 
-    # Iniciar carrossel usando asyncio.create_task
+    # =========================
+    # INICIAR CARROSSEL
+    # =========================
     asyncio.create_task(loop_carrossel())
 
 # =========================
 # EXECUÇÃO (RENDER)
 # =========================
-ft.run(main, host="0.0.0.0", port=10000)
+ft.run(main, host="0.0.0.0", port=10000, assets_dir="assets")  # ⚠️ assets_dir necessário
