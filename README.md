@@ -3,7 +3,7 @@
 Aplicação web desenvolvida em Python + Flet para buscar e comparar preços de produtos em diferentes estabelecimentos, exibindo de forma simples o menor preço disponível para o consumidor.
 
 🔗 Aplicação online:
-👉 https://melhor-pre-o-1.onrender.com/
+👉 https://minimopreco.onrender.com/
 
 🚀 Funcionalidades
 
