@@ -118,7 +118,7 @@ async def main(page: ft.Page):
     # CARROSSEL (via assets/)
     # =========================
     carousel_imgs = [
-        "img.png",
+        "img_3.png",
         "img_1.png",
         "img_2.png",
     ]  # todas dentro da pasta assets/
@@ -165,4 +165,5 @@ async def main(page: ft.Page):
 # EXECUÇÃO (RENDER)
 # =========================
 ft.run(main, host="0.0.0.0", port=10000, assets_dir="assets")  # ⚠️ assets_dir necessário
+
 
