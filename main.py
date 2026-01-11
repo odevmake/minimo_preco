@@ -1,9 +1,9 @@
 import flet as ft
 import csv
 import os
+import asyncio
 
 ARQUIVO = "precos.csv"
-
 
 # =========================
 # CARREGAR DADOS COM SEGURANÇA
@@ -37,21 +37,20 @@ def carregar_dados():
 
     return dados
 
-
 # =========================
 # APP
 # =========================
-def main(page: ft.Page):
-    page.title = "Melhores Preços - Sergipe"
+async def main(page: ft.Page):
+    page.title = "🛒 Mínimos Preços - Sergipe"
     page.padding = 20
     page.scroll = ft.ScrollMode.AUTO
+    page.bgcolor = ft.Colors.BLACK
 
     dados = carregar_dados()
 
     # =========================
     # TABELA
     # =========================
-
     tabela = ft.DataTable(
         columns=[
             ft.DataColumn(ft.Text("Produto")),
@@ -67,7 +66,6 @@ def main(page: ft.Page):
 
     def atualizar_tabela(lista):
         tabela.rows.clear()
-
         for item in lista:
             tabela.rows.append(
                 ft.DataRow(
@@ -82,7 +80,6 @@ def main(page: ft.Page):
                     ]
                 )
             )
-
         page.update()
 
     # =========================
@@ -137,11 +134,9 @@ def main(page: ft.Page):
     )
 
     contador = ft.Text(
-
         "",
         italic=True,
         color=ft.Colors.GREY
-
     )
 
     filtros = ft.Row([
@@ -151,50 +146,57 @@ def main(page: ft.Page):
     ])
 
     # =========================
-    # IMAGEM (RENDER OK)
+    # LOGO PRINCIPAL
     # =========================
     logo = ft.Image(
-        src="img.png",  # ⚠️ SEM assets/
+        src="img.png",
         width=380,
         fit="contain"
     )
 
-    def montar_layout():
-        # layout para celular
-        if page.width < 800:
-            return ft.Column(
-                [
-                    ft.Container(
-                        content=logo,
-                        padding=10,
-                        alignment=ft.Alignment.CENTER
-                    ),
-                    ft.Container(
-                        content=tabela,
-                        padding=10
-                    )
-                ]
-            )
+    # =========================
+    # CARROSSEL
+    # =========================
+    carousel_imgs = [
+        "carousel/img.png",
+        "carousel/img_1.png",
+        "carousel/img_2.png",
+    ]
+    carousel_index = 0
+    carousel_image = ft.Image(
+        src=carousel_imgs[carousel_index],
+        width=380,
+        height=250,
+        fit="contain"
+    )
 
-        # layout para PC
-        return ft.Row(
-            [
+    async def loop_carrossel():
+        nonlocal carousel_index
+        while True:
+            await asyncio.sleep(10)  # 10 segundos
+            carousel_index = (carousel_index + 1) % len(carousel_imgs)
+            carousel_image.src = carousel_imgs[carousel_index]
+            page.update()
+
+    # =========================
+    # FUNÇÃO PARA MONTAR LAYOUT RESPONSIVO
+    # =========================
+    def montar_layout():
+        if page.width < 800:
+            return ft.Column([
+                ft.Container(content=logo, padding=10, alignment=ft.Alignment.CENTER),
+                ft.Container(content=carousel_image, padding=10, alignment=ft.Alignment.CENTER),
+                ft.Container(content=tabela, padding=10)
+            ])
+        else:
+            return ft.Row([
+                ft.Container(content=tabela, expand=True, padding=15),
                 ft.Container(
-                    content=tabela,
-                    expand=True,
-                    padding=15
-                ),
-                ft.Container(
-                    content=ft.Column(
-                        [logo],
-                        alignment=ft.MainAxisAlignment.START
-                    ),
+                    content=ft.Column([logo, ft.Container(height=10), carousel_image], alignment=ft.MainAxisAlignment.START),
                     width=420,
                     padding=15
                 )
-            ],
-            vertical_alignment=ft.CrossAxisAlignment.START
-        )
+            ], vertical_alignment=ft.CrossAxisAlignment.START)
 
     # =========================
     # LAYOUT PRINCIPAL
@@ -208,14 +210,10 @@ def main(page: ft.Page):
         conteudo
     )
 
+    # Iniciar carrossel usando asyncio.create_task
+    asyncio.create_task(loop_carrossel())
 
 # =========================
 # EXECUÇÃO (RENDER)
 # =========================
-ft.app(
-    target=main,
-    #assets_dir="assets",
-    host="0.0.0.0",
-    port=10000
-)
-
+ft.run(main, host="0.0.0.0", port=10000)
