@@ -39,7 +39,7 @@ async def main(page: ft.Page):
     page.title = "🛒 Mínimos Preços - Sergipe"
     page.padding = 20
     page.scroll = ft.ScrollMode.AUTO
-    page.bgcolor = ft.Colors.WHITE
+    page.bgcolor = ft.Colors.BLACK
 
     dados = carregar_dados()
 
@@ -105,7 +105,7 @@ async def main(page: ft.Page):
     # =========================
     # TOPO
     # =========================
-    titulo = ft.Text("📊 Comparador de Preços", size=22, weight=ft.FontWeight.BOLD)
+    titulo = ft.Text("Comparador de Preços", size=22, weight=ft.FontWeight.BOLD)
     contador = ft.Text("", italic=True, color=ft.Colors.GREY)
     filtros = ft.Row([busca, cidade_input, estado_input])
 
@@ -118,9 +118,9 @@ async def main(page: ft.Page):
     # CARROSSEL (via assets/)
     # =========================
     carousel_imgs = [
-        "carousel/img.png",
-        "carousel/img_1.png",
-        "carousel/img_2.png",
+        "img.png",
+        "img_1.png",
+        "img_2.png",
     ]  # todas dentro da pasta assets/
     carousel_index = 0
     carousel_image = ft.Image(src=carousel_imgs[carousel_index], width=380, height=250, fit="contain")
@@ -165,3 +165,4 @@ async def main(page: ft.Page):
 # EXECUÇÃO (RENDER)
 # =========================
 ft.run(main, host="0.0.0.0", port=10000, assets_dir="assets")  # ⚠️ assets_dir necessário
+
