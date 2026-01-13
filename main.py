@@ -138,29 +138,29 @@ async def main(page: ft.Page):
     atualizar_tabela(dados)
 
     async def gerar_lista(e):
-    if not selecionados:
-        page.snack_bar = ft.SnackBar(ft.Text("Selecione ao menos um item"))
-        page.snack_bar.open = True
-        page.update()
-        return
-
-    pdf_bytes = gerar_pdf_bytes(selecionados)
-    nome_pdf = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-
-    if page.web:
-        # ✅ DOWNLOAD REAL NO NAVEGADOR (RENDER)
-        await page.download(
-            file_name=nome_pdf,
-            data=pdf_bytes
-        )
-    else:
-        # ✅ DESKTOP (Windows)
-        caminho = os.path.abspath(nome_pdf)
-        with open(caminho, "wb") as f:
-            f.write(pdf_bytes)
-
-        launcher = UrlLauncher()
-        await launcher.launch_url(f"file:///{caminho}")
+        if not selecionados:
+            page.snack_bar = ft.SnackBar(ft.Text("Selecione ao menos um item"))
+            page.snack_bar.open = True
+            page.update()
+            return
+    
+        pdf_bytes = gerar_pdf_bytes(selecionados)
+        nome_pdf = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    
+        if page.web:
+            # ✅ DOWNLOAD REAL NO NAVEGADOR (RENDER)
+            await page.download(
+                file_name=nome_pdf,
+                data=pdf_bytes
+            )
+        else:
+            # ✅ DESKTOP (Windows)
+            caminho = os.path.abspath(nome_pdf)
+            with open(caminho, "wb") as f:
+                f.write(pdf_bytes)
+    
+            launcher = UrlLauncher()
+            await launcher.launch_url(f"file:///{caminho}")
 
 
     botao_pdf = ft.Button(
@@ -214,4 +214,5 @@ ft.run(
     port=10000,
     assets_dir="assets"
 )
+
 
