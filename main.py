@@ -3,6 +3,7 @@ import csv
 import os
 import asyncio
 import base64
+import io
 from io import BytesIO
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
@@ -68,7 +69,10 @@ def gerar_pdf_bytes(itens):
 # APP
 # =========================
 async def main(page: ft.Page):
-    page.title = "🛒 Mínimo Preço - Sergipe"
+    file_picker = ft.FilePicker()
+    page.overlay.append(file_picker)
+
+    page.title = "Mínimo Preço - Sergipe"
     page.padding = 20
     page.scroll = ft.ScrollMode.AUTO
     page.bgcolor = ft.Colors.BLACK
@@ -147,21 +151,10 @@ async def main(page: ft.Page):
         pdf_bytes = gerar_pdf_bytes(selecionados)
         nome_pdf = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     
-        if page.web:
-            # ✅ DOWNLOAD REAL NO NAVEGADOR (RENDER)
-            await page.download(
-                file_name=nome_pdf,
-                data=pdf_bytes
-            )
-        else:
-            # ✅ DESKTOP (Windows)
-            caminho = os.path.abspath(nome_pdf)
-            with open(caminho, "wb") as f:
-                f.write(pdf_bytes)
-    
-            launcher = UrlLauncher()
-            await launcher.launch_url(f"file:///{caminho}")
-
+        await file_picker.save_file(
+            file_name=nome_pdf,
+            data=pdf_bytes
+        )
 
     botao_pdf = ft.Button(
         content=ft.Row(
@@ -214,5 +207,6 @@ ft.run(
     port=10000,
     assets_dir="assets"
 )
+
 
 
