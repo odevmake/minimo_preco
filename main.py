@@ -2,8 +2,13 @@ import flet as ft
 import csv
 import os
 import asyncio
+from datetime import datetime
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from flet import UrlLauncher
 
 ARQUIVO = "precos.csv"
+ASSETS_DIR = "assets"
 
 # =========================
 # CARREGAR DADOS
@@ -17,8 +22,7 @@ def carregar_dados():
         leitor = csv.DictReader(f)
         for linha in leitor:
             try:
-                preco_raw = linha.get("Preco", "").strip().replace(",", ".")
-                preco = float(preco_raw)
+                preco = float(linha.get("Preco", "").replace(",", "."))
                 dados.append({
                     "Produto": linha.get("Produto", ""),
                     "Marca": linha.get("Marca", ""),
@@ -33,21 +37,51 @@ def carregar_dados():
     return dados
 
 # =========================
+# GERAR PDF
+# =========================
+def gerar_pdf(itens):
+    nome_pdf = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    caminho_pdf = os.path.join(ASSETS_DIR, nome_pdf)
+
+    c = canvas.Canvas(caminho_pdf, pagesize=A4)
+    largura, altura = A4
+
+    y = altura - 40
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(40, y, "Lista de Compras - Mínimo Preço")
+    y -= 30
+
+    c.setFont("Helvetica", 10)
+
+    for item in itens:
+        texto = f"{item['Produto']} | {item['Marca']} | {item['Unidade']} | R$ {item['Preco']:.2f} | {item['Local']}"
+        c.drawString(40, y, texto)
+        y -= 15
+        if y < 40:
+            c.showPage()
+            y = altura - 40
+
+    c.save()
+    return nome_pdf
+
+# =========================
 # APP
 # =========================
 async def main(page: ft.Page):
-    page.title = "🛒 Mínimos Preços - Sergipe"
+    page.title = "🛒 Mínimo Preço - Sergipe"
     page.padding = 20
     page.scroll = ft.ScrollMode.AUTO
     page.bgcolor = ft.Colors.BLACK
 
     dados = carregar_dados()
+    selecionados = []
 
     # =========================
     # TABELA
     # =========================
     tabela = ft.DataTable(
         columns=[
+            ft.DataColumn(ft.Text("✔")),
             ft.DataColumn(ft.Text("Produto")),
             ft.DataColumn(ft.Text("Marca")),
             ft.DataColumn(ft.Text("Unidade")),
@@ -62,9 +96,16 @@ async def main(page: ft.Page):
     def atualizar_tabela(lista):
         tabela.rows.clear()
         for item in lista:
+            def marcar(e, i=item):
+                if e.control.value and i not in selecionados:
+                    selecionados.append(i)
+                elif not e.control.value and i in selecionados:
+                    selecionados.remove(i)
+
             tabela.rows.append(
                 ft.DataRow(
                     cells=[
+                        ft.DataCell(ft.Checkbox(on_change=marcar)),
                         ft.DataCell(ft.Text(item["Produto"])),
                         ft.DataCell(ft.Text(item["Marca"])),
                         ft.DataCell(ft.Text(item["Unidade"])),
@@ -93,77 +134,92 @@ async def main(page: ft.Page):
         ]
 
         filtrado.sort(key=lambda x: x["Preco"])
-        contador.value = f"{len(filtrado)} resultados encontrados" if filtrado else "Nenhum produto encontrado"
+        contador.value = f"{len(filtrado)} resultados encontrados"
         atualizar_tabela(filtrado)
 
-    busca = ft.TextField(label="Buscar produto", prefix_icon=ft.Icons.SEARCH, expand=True, on_change=buscar)
+    busca = ft.TextField(label="Buscar produto", expand=True, on_change=buscar)
     cidade_input = ft.TextField(label="Cidade", value="Aracaju", width=200, on_change=buscar)
     estado_input = ft.TextField(label="Estado", value="SE", width=120, on_change=buscar)
 
     atualizar_tabela(dados)
 
     # =========================
+    # GERAR PDF
+    # =========================
+    async def gerar_lista(e):
+        if not selecionados:
+            page.snack_bar = ft.SnackBar(ft.Text("Selecione ao menos um item"))
+            page.snack_bar.open = True
+            page.update()
+            return
+
+        nome_pdf = gerar_pdf(selecionados)
+        launcher = UrlLauncher()
+
+        if page.web:
+            await launcher.launch_url(f"/assets/{nome_pdf}")
+        else:
+            caminho = os.path.abspath(os.path.join(ASSETS_DIR, nome_pdf))
+            await launcher.launch_url(f"file:///{caminho}")
+
+    botao_pdf = ft.Button(
+        content=ft.Row(
+            [ft.Icon(ft.Icons.PICTURE_AS_PDF), ft.Text("Gerar lista em PDF")],
+            alignment=ft.MainAxisAlignment.CENTER
+        ),
+        on_click=gerar_lista
+    )
+
+    # =========================
     # TOPO
     # =========================
     titulo = ft.Text("Comparador de Preços", size=22, weight=ft.FontWeight.BOLD)
     contador = ft.Text("", italic=True, color=ft.Colors.GREY)
-    filtros = ft.Row([busca, cidade_input, estado_input])
+    filtros = ft.Row([busca, cidade_input, estado_input, botao_pdf])
 
     # =========================
-    # LOGO PRINCIPAL
+    # LOGO + CARROSSEL (TOPO)
     # =========================
-    logo = ft.Image(src="logo.png", width=380, fit="contain")  # coloque a logo em assets/
-
-    # =========================
-    # CARROSSEL (via assets/)
-    # =========================
-    carousel_imgs = [
-        "img_3.png",
-        "img_1.png",
-        "img_2.png",
-    ]  # todas dentro da pasta assets/
+    logo = ft.Image(src="logo.png", width=380)
+    carousel_imgs = ["img_1.png", "img_2.png", "img_3.png"]
     carousel_index = 0
-    carousel_image = ft.Image(src=carousel_imgs[carousel_index], width=380, height=250, fit="contain")
+    carousel = ft.Image(src=carousel_imgs[0], width=380, height=250)
 
     async def loop_carrossel():
         nonlocal carousel_index
-        while True:
+        while page.session:
             await asyncio.sleep(10)
             carousel_index = (carousel_index + 1) % len(carousel_imgs)
-            carousel_image.src = carousel_imgs[carousel_index]
+            carousel.src = carousel_imgs[carousel_index]
             page.update()
 
-    # =========================
-    # LAYOUT RESPONSIVO
-    # =========================
-    def montar_layout():
-        if page.width < 800:
-            return ft.Column([
-                ft.Container(content=logo, padding=10, alignment=ft.Alignment.CENTER),
-                ft.Container(content=carousel_image, padding=10, alignment=ft.Alignment.CENTER),
-                ft.Container(content=tabela, padding=10)
-            ])
-        else:
-            return ft.Row([
-                ft.Container(content=tabela, expand=True, padding=15),
-                ft.Container(
-                    content=ft.Column([logo, ft.Container(height=10), carousel_image], alignment=ft.MainAxisAlignment.START),
-                    width=420,
-                    padding=15
-                )
-            ], vertical_alignment=ft.CrossAxisAlignment.START)
-
-    conteudo = montar_layout()
-    page.add(titulo, filtros, contador, ft.Divider(), conteudo)
+    topo_visual = ft.Row(
+        [logo, carousel],
+        alignment=ft.MainAxisAlignment.CENTER,
+        #horizontal_alignment=ft.CrossAxisAlignment.CENTER
+    )
 
     # =========================
-    # INICIAR CARROSSEL
+    # LAYOUT PRINCIPAL
     # =========================
+    page.add(
+        topo_visual,
+        ft.Divider(),
+        titulo,
+        filtros,
+        contador,
+        ft.Divider(),
+        tabela
+    )
+
     asyncio.create_task(loop_carrossel())
 
 # =========================
-# EXECUÇÃO (RENDER)
+# EXECUÇÃO
 # =========================
-ft.run(main, host="0.0.0.0", port=10000, assets_dir="assets")  # ⚠️ assets_dir necessário
-
-
+ft.run(
+    main,
+    host="0.0.0.0",
+    port=10000,
+    assets_dir="assets"
+)
