@@ -2,13 +2,14 @@ import flet as ft
 import csv
 import os
 import asyncio
+import base64
+from io import BytesIO
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from flet import UrlLauncher
 
 ARQUIVO = "precos.csv"
-ASSETS_DIR = "assets"
 
 # =========================
 # CARREGAR DADOS
@@ -37,13 +38,11 @@ def carregar_dados():
     return dados
 
 # =========================
-# GERAR PDF
+# GERAR PDF EM MEMÓRIA
 # =========================
-def gerar_pdf(itens):
-    nome_pdf = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    caminho_pdf = os.path.join(ASSETS_DIR, nome_pdf)
-
-    c = canvas.Canvas(caminho_pdf, pagesize=A4)
+def gerar_pdf_bytes(itens):
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
     largura, altura = A4
 
     y = altura - 40
@@ -62,7 +61,8 @@ def gerar_pdf(itens):
             y = altura - 40
 
     c.save()
-    return nome_pdf
+    buffer.seek(0)
+    return buffer.read()
 
 # =========================
 # APP
@@ -76,9 +76,6 @@ async def main(page: ft.Page):
     dados = carregar_dados()
     selecionados = []
 
-    # =========================
-    # TABELA
-    # =========================
     tabela = ft.DataTable(
         columns=[
             ft.DataColumn(ft.Text("✔")),
@@ -118,9 +115,6 @@ async def main(page: ft.Page):
             )
         page.update()
 
-    # =========================
-    # BUSCA
-    # =========================
     def buscar(e):
         termo = busca.value.lower()
         cidade = cidade_input.value.lower()
@@ -143,9 +137,6 @@ async def main(page: ft.Page):
 
     atualizar_tabela(dados)
 
-    # =========================
-    # GERAR PDF
-    # =========================
     async def gerar_lista(e):
         if not selecionados:
             page.snack_bar = ft.SnackBar(ft.Text("Selecione ao menos um item"))
@@ -153,13 +144,19 @@ async def main(page: ft.Page):
             page.update()
             return
 
-        nome_pdf = gerar_pdf(selecionados)
+        pdf_bytes = gerar_pdf_bytes(selecionados)
+        nome_pdf = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
         launcher = UrlLauncher()
 
         if page.web:
-            await launcher.launch_url(f"/assets/{nome_pdf}")
+            b64 = base64.b64encode(pdf_bytes).decode()
+            data_url = f"data:application/pdf;base64,{b64}"
+            await launcher.launch_url(data_url)
         else:
-            caminho = os.path.abspath(os.path.join(ASSETS_DIR, nome_pdf))
+            caminho = os.path.abspath(nome_pdf)
+            with open(caminho, "wb") as f:
+                f.write(pdf_bytes)
             await launcher.launch_url(f"file:///{caminho}")
 
     botao_pdf = ft.Button(
@@ -170,16 +167,10 @@ async def main(page: ft.Page):
         on_click=gerar_lista
     )
 
-    # =========================
-    # TOPO
-    # =========================
     titulo = ft.Text("Comparador de Preços", size=22, weight=ft.FontWeight.BOLD)
     contador = ft.Text("", italic=True, color=ft.Colors.GREY)
     filtros = ft.Row([busca, cidade_input, estado_input, botao_pdf])
 
-    # =========================
-    # LOGO + CARROSSEL (TOPO)
-    # =========================
     logo = ft.Image(src="logo.png", width=380)
     carousel_imgs = ["img_1.png", "img_2.png", "img_3.png"]
     carousel_index = 0
@@ -195,13 +186,9 @@ async def main(page: ft.Page):
 
     topo_visual = ft.Row(
         [logo, carousel],
-        alignment=ft.MainAxisAlignment.CENTER,
-        #horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        alignment=ft.MainAxisAlignment.CENTER
     )
 
-    # =========================
-    # LAYOUT PRINCIPAL
-    # =========================
     page.add(
         topo_visual,
         ft.Divider(),
