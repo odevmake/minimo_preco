@@ -2,13 +2,10 @@ import flet as ft
 import csv
 import os
 import asyncio
-import base64
-import io
 from io import BytesIO
 from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-from flet import UrlLauncher
 
 ARQUIVO = "precos.csv"
 
@@ -54,9 +51,13 @@ def gerar_pdf_bytes(itens):
     c.setFont("Helvetica", 10)
 
     for item in itens:
-        texto = f"{item['Produto']} | {item['Marca']} | {item['Unidade']} | R$ {item['Preco']:.2f} | {item['Local']}"
+        texto = (
+            f"{item['Produto']} | {item['Marca']} | "
+            f"{item['Unidade']} | R$ {item['Preco']:.2f} | {item['Local']}"
+        )
         c.drawString(40, y, texto)
         y -= 15
+
         if y < 40:
             c.showPage()
             y = altura - 40
@@ -69,17 +70,22 @@ def gerar_pdf_bytes(itens):
 # APP
 # =========================
 async def main(page: ft.Page):
-    file_picker = ft.FilePicker()
-    page.overlay.append(file_picker)
 
     page.title = "Mínimo Preço - Sergipe"
     page.padding = 20
     page.scroll = ft.ScrollMode.AUTO
     page.bgcolor = ft.Colors.BLACK
 
+    # FilePicker (OBRIGATÓRIO no overlay)
+    file_picker = ft.FilePicker()
+    page.overlay.append(file_picker)
+
     dados = carregar_dados()
     selecionados = []
 
+    # =========================
+    # TABELA
+    # =========================
     tabela = ft.DataTable(
         columns=[
             ft.DataColumn(ft.Text("✔")),
@@ -96,6 +102,7 @@ async def main(page: ft.Page):
 
     def atualizar_tabela(lista):
         tabela.rows.clear()
+
         for item in lista:
             def marcar(e, i=item):
                 if e.control.value and i not in selecionados:
@@ -117,8 +124,12 @@ async def main(page: ft.Page):
                     ]
                 )
             )
+
         page.update()
 
+    # =========================
+    # BUSCA
+    # =========================
     def buscar(e):
         termo = busca.value.lower()
         cidade = cidade_input.value.lower()
@@ -141,16 +152,19 @@ async def main(page: ft.Page):
 
     atualizar_tabela(dados)
 
+    # =========================
+    # GERAR PDF
+    # =========================
     async def gerar_lista(e):
         if not selecionados:
             page.snack_bar = ft.SnackBar(ft.Text("Selecione ao menos um item"))
             page.snack_bar.open = True
             page.update()
             return
-    
+
         pdf_bytes = gerar_pdf_bytes(selecionados)
         nome_pdf = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-    
+
         await file_picker.save_file(
             file_name=nome_pdf,
             data=pdf_bytes
@@ -158,12 +172,18 @@ async def main(page: ft.Page):
 
     botao_pdf = ft.Button(
         content=ft.Row(
-            [ft.Icon(ft.Icons.PICTURE_AS_PDF), ft.Text("Gerar lista em PDF")],
+            [
+                ft.Icon(ft.Icons.PICTURE_AS_PDF),
+                ft.Text("Gerar lista em PDF")
+            ],
             alignment=ft.MainAxisAlignment.CENTER
         ),
         on_click=gerar_lista
     )
 
+    # =========================
+    # TOPO
+    # =========================
     titulo = ft.Text("Comparador de Preços", size=22, weight=ft.FontWeight.BOLD)
     contador = ft.Text("", italic=True, color=ft.Colors.GREY)
     filtros = ft.Row([busca, cidade_input, estado_input, botao_pdf])
@@ -207,6 +227,3 @@ ft.run(
     port=10000,
     assets_dir="assets"
 )
-
-
-
