@@ -160,16 +160,10 @@ async def main(page: ft.Page):
         pdf_b64 = gerar_pdf_base64(selecionados)
         nome = f"lista_compras_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
 
-        download_url = (
-            f"data:application/pdf;base64,{pdf_b64}"
-        )
+        download_url = f"data:application/pdf;base64,{pdf_b64}"
 
-        page.open(
-            ft.WindowOpenEvent(
-                url=download_url,
-                window_name=nome
-            )
-        )
+        # ✅ ESTA LINHA É A CHAVE
+        await page.launch_url(download_url)
 
     botao_pdf = ft.Button(
         content=ft.Row(
